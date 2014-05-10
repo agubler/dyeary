@@ -1,0 +1,8 @@
+{
+	"name": "DearDyeary",
+		"description": "Dear Dyeary",
+		"dependencies": {
+			"twit": "*",
+			"commander": "*"
+		}
+}
