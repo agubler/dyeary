@@ -3,6 +3,7 @@
 		"description": "Dear Dyeary",
 		"dependencies": {
 			"twit": "*",
-			"commander": "*"
+			"commander": "*",
+			"forever": "*"
 		}
 }
