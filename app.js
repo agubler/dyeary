@@ -18,14 +18,25 @@ try {
 
 if (program.user) {
 	var twit = new Twit(authConfig);
-	var stream = twit.stream('statuses/filter', { follow: program.user });
+	var userId = program.user;
 
-	stream.on('tweet', function (tweet) {
-		console.log("Registered Tweet", tweet);
-		if (!tweet.retweeted_status) {
-			if (!tweet.in_reply_to_screen_name && !tweet.in_reply_to_status_id && !tweet.in_reply_to_user_id) {
+	twit.get('users/show', {screen_name: program.user}, function(err, user){
+		if (user) {
+			console.log("User found for screen_name:", program.user);
+			userId = user.id;
+		}
+		var stream = twit.stream('statuses/filter', { follow: userId });
+
+		stream.on('tweet', function (tweet) {
+			var isCandidateTweet = !tweet.in_reply_to_screen_name &&
+				!tweet.in_reply_to_status_id &&
+				!tweet.in_reply_to_user_id &&
+				!tweet.retweeted_status;
+
+			if (isCandidateTweet) {
 				if (tweet.text.length < 128) {
 					if (!!program.dryrun) {
+						console.log("Registered Tweet", tweet);
 						twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err, details) {
 							if (err) {
 								console.log("Error posting tweet", tweet.text);
@@ -35,16 +46,14 @@ if (program.user) {
 						console.log("Dry-run tweet details:", "Dear Diary", tweet.text);
 					}
 				} else {
-					console.log("Potential Diary tweet missed due to length", tweet.text);
+					console.log("Tweet missed due to length:", tweet.text);
 				}
 			} else {
-				console.log("Tweet was a reply", tweet.text);
+				console.log("Tweet was a retweet or reply:", tweet.text);
 			}
-		} else {
-			console.log("Tweet was a retweet");
-		}
+		});
+		console.log("Application Started");
 	});
-	console.log("Application Started");
 } else {
 	console.error("Twitter user Id or screen name is required");
 	process.exit(1);
