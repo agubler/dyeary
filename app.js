@@ -25,7 +25,7 @@ if (program.user) {
 		if (!tweet.retweeted_status) {
 			if (!tweet.in_reply_to_screen_name && !tweet.in_reply_to_status_id && !tweet.in_reply_to_user_id) {
 				if (tweet.text.length < 128) {
-					if (!!program.debug) {
+					if (!!program.dryrun) {
 						twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err, details) {
 							if (err) {
 								console.log("Error posting tweet", tweet.text);
