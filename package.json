@@ -4,6 +4,7 @@
 		"dependencies": {
 			"twit": "*",
 			"commander": "*",
-			"forever": "*"
+			"forever": "*",
+			"when": "*"
 		}
 }

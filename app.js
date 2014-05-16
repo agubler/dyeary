@@ -2,10 +2,12 @@
 
 var Twit = require("twit");
 var program = require('commander');
+var when = require('when');
 
 program
 	.version("0.0.1")
 	.option("-u, --user <value>", "Twitter screen name or user Id to track")
+	.option("-r, --randomInt <value>", "The percentage of the time that a registered tweet will be included", "100")
 	.option("-d, --dryrun", "Set dryrun on, not tweets will be posted")
 	.parse(process.argv);
 
@@ -16,45 +18,71 @@ try {
 	process.exit(1);
 }
 
-if (program.user) {
-	var twit = new Twit(authConfig);
-	var userId = program.user;
-
-	twit.get('users/show', {screen_name: program.user}, function(err, user){
-		if (user) {
-			console.log("User found for screen_name:", program.user);
-			userId = user.id;
-		}
-		var stream = twit.stream('statuses/filter', { follow: userId });
-
-		stream.on('tweet', function (tweet) {
-			var isCandidateTweet = !tweet.in_reply_to_screen_name &&
-				!tweet.in_reply_to_status_id &&
-				!tweet.in_reply_to_user_id &&
-				!tweet.retweeted_status;
-
-			if (isCandidateTweet) {
-				if (tweet.text.length < 128) {
-					if (!!program.dryrun) {
-						console.log("Registered Tweet", tweet);
-						twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err, details) {
-							if (err) {
-								console.log("Error posting tweet", tweet.text);
-							}
-						});
-					} else {
-						console.log("Dry-run tweet details:", "Dear Diary", tweet.text);
-					}
-				} else {
-					console.log("Tweet missed due to length:", tweet.text);
-				}
-			} else {
-				console.log("Tweet was a retweet or reply:", tweet.text);
-			}
-		});
-		console.log("Application Started");
-	});
-} else {
+if (!program.user) {
 	console.error("Twitter user Id or screen name is required");
 	process.exit(1);
 }
+
+/**
+ *
+ * @constructor
+ */
+function Dyeary() {
+	var self = this;
+	self.twit = new Twit(authConfig);
+
+	when.all(this.getUserIds(program.user.split(','))).then(this.followUsers.bind(this));
+}
+
+Dyeary.prototype.getUserIds = function(users) {
+	var self = this,
+		promises = [];
+	users.forEach(function (user) {
+		var deferred = when.defer();
+		promises.push(deferred.promise);
+		self.twit.get('users/show', {screen_name: user}, function (err, twitterUser) {
+			if (twitterUser) {
+				console.log("User found for screen_name:", user);
+				deferred.resolve(twitterUser.id);
+			} else {
+				console.log("User found for screen_name:", user);
+				deferred.resolve(user);
+			}
+		});
+	});
+	return promises;
+};
+
+Dyeary.prototype.followUsers = function(userIds) {
+	var self = this;
+	var stream = self.twit.stream('statuses/filter', { follow: userIds.join(',') });
+
+	stream.on('tweet', function (tweet) {
+		var isCandidateTweet = !tweet.in_reply_to_screen_name && !tweet.in_reply_to_status_id && !tweet.in_reply_to_user_id && !tweet.retweeted_status;
+		if (self.repostTweet() && isCandidateTweet && tweet.text.length < 128) {
+			if (!!program.dryrun) {
+				console.log("Registered Tweet", tweet);
+				twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err) {
+					if (err) {
+						console.log("Error posting tweet", tweet.text);
+					}
+				});
+			} else {
+				console.log("Dry-run tweet details:", "Dear Diary", tweet.text);
+			}
+		}
+	});
+	console.log("Application Started");
+};
+
+Dyeary.prototype.repostTweet = function() {
+	var percentage = parseInt(program.randomInt);
+	var repost = true;
+	if (!isNaN(percentage)) {
+		repost = percentage / 100 > Math.random();
+	}
+	console.log(repost);
+	return repost;
+};
+
+new Dyeary();
