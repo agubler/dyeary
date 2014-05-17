@@ -7,7 +7,7 @@ var when = require('when');
 program
 	.version("0.0.1")
 	.option("-u, --user <value>", "Twitter screen name or user Id to track")
-	.option("-r, --randomInt <value>", "The percentage of the time that a registered tweet will be included", "100")
+	.option("-r, --frequency <value>", "The percentage of the time that a registered tweet will be included", "100")
 	.option("-d, --dryrun", "Set dryrun on, not tweets will be posted")
 	.parse(process.argv);
 
@@ -59,10 +59,10 @@ Dyeary.prototype.followUsers = function(userIds) {
 
 	stream.on('tweet', function (tweet) {
 		var isCandidateTweet = !tweet.in_reply_to_screen_name && !tweet.in_reply_to_status_id && !tweet.in_reply_to_user_id && !tweet.retweeted_status;
-		if (self.repostTweet() && isCandidateTweet && tweet.text.length < 128) {
-			if (!!program.dryrun) {
+		if (self.doRepostTweet() && isCandidateTweet && tweet.text.length < 128) {
+			if (!program.dryrun) {
 				console.log("Registered Tweet", tweet);
-				twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err) {
+				self.twit.post('statuses/update', { status: "Dear Diary " + tweet.text}, function (err) {
 					if (err) {
 						console.log("Error posting tweet", tweet.text);
 					}
@@ -75,13 +75,12 @@ Dyeary.prototype.followUsers = function(userIds) {
 	console.log("Application Started");
 };
 
-Dyeary.prototype.repostTweet = function() {
-	var percentage = parseInt(program.randomInt);
+Dyeary.prototype.doRepostTweet = function() {
+	var tweetFrequency = parseInt(program.frequency);
 	var repost = true;
-	if (!isNaN(percentage)) {
-		repost = percentage / 100 > Math.random();
+	if (!isNaN(tweetFrequency)) {
+		repost = tweetFrequency / 100 > Math.random();
 	}
-	console.log(repost);
 	return repost;
 };
 
