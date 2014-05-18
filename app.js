@@ -40,17 +40,24 @@ Dyeary.prototype.getUserIds = function(users) {
 	users.forEach(function (user) {
 		var deferred = when.defer();
 		promises.push(deferred.promise);
-		self.twit.get('users/show', {screen_name: user}, function (err, twitterUser) {
-			if (twitterUser) {
-				console.log("User found for screen_name:", user);
-				deferred.resolve(twitterUser.id);
-			} else {
-				console.log("User found for screen_name:", user);
-				deferred.resolve(user);
-			}
-		});
+		var userLookupArgs = {};
+		if (isNaN(parseInt(user))) {
+			userLookupArgs = {screen_name: user};
+		} else {
+			userLookupArgs = {user_id: user};
+		}
+		self.twit.get('users/show', userLookupArgs, self.parseUserResponse.bind(self, user, deferred));
 	});
 	return promises;
+};
+
+Dyeary.prototype.parseUserResponse = function(user, deferred, error, twitterUser) {
+	if (error) {
+		console.log("Unable to find twitter user for input:", user);
+	} else if (twitterUser) {
+		console.log("User found for input:", user, "screen_name:", twitterUser.screen_name);
+		deferred.resolve(twitterUser.id);
+	}
 };
 
 Dyeary.prototype.followUsers = function(userIds) {
@@ -72,7 +79,7 @@ Dyeary.prototype.followUsers = function(userIds) {
 			}
 		}
 	});
-	console.log("Application Started");
+	console.log("Application Started", program.dryrun ? " - dryrun on" : "" );
 };
 
 Dyeary.prototype.doRepostTweet = function() {
