@@ -55,7 +55,7 @@ Dyeary.prototype.parseUserResponse = function(user, deferred, error, twitterUser
 	if (error) {
 		console.log("Unable to find twitter user for input:", user);
 	} else if (twitterUser) {
-		console.log("User found for input:", user, "screen_name:", twitterUser.screen_name);
+		console.log("User found for input:", user, "screen_name:", twitterUser.screen_name, "userid:", twitterUser.id);
 		deferred.resolve(twitterUser.id);
 	}
 };
